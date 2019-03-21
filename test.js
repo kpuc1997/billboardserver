@@ -30,11 +30,10 @@ var getDates = function(startDate, endDate) {
 
 
 function getChartData(lastUpdate, today) {
-    // Retrieves and formats chart data between two dates. Returns formated data.
+// Retrieves and formats chart data between two dates. Returns formated data.
     // List of objects, each with rank, title, and artist
 
     var data = []; // List where the data from the billboard api will be stored
-
     // Gets a list of all days between two dates
     var dates = getDates(lastUpdate, today); 
  
@@ -45,34 +44,44 @@ function getChartData(lastUpdate, today) {
             // 'billboard-200' is the chart to check
             // date.toISOString()slice(0, 10) is the date to check the chart.
             // the third argument is the callback function.
-            getChart('billboard-200', date.toISOString().slice(0, 10), function(err, chart) {
+            data.push(new Promise(function(resolve, reject) {
+                getChart('billboard-200', date.toISOString().slice(0, 10), function(err, chart) {
                 
-                
+                var temp = [];
                 for(song of chart.songs) {
-                    data.push(
+                    temp.push(
                         {   rank: song.rank, 
                             title: song.title, 
                             artist: song.artist}
-                    )};  
+                        )
+                    };
+                resolve(temp);
                 });
-            
+            }));            
+    }
+)
     
-
-        }
-    )
-    // setTimeout(function() {console.log(data)}, 5000);
+    //setTimeout(function() {console.log(data)}, 5000);
     // Uncommenting the above line will log 'data' after 5 seconds. 
     // After waiting 5 seconds, data contains all information necessary.
     // Waiting 0 seconds returns an empty list.
     // In both cases the main function will return an empty list.
     return data
+
 }
 
 // Main goal is to get the above function to return a list of objects with 
 // data from the billboard api. The following line tests this by attempting
 // to get data from only one week and log it to console. 
 // At present it will only log an empty list.
-console.log(getChartData(new Date('2019-03-01'), new Date('2019-03-01')))
+
+getChartData(new Date('2019-03-01'), new Date('2019-03-01')).forEach(function(promise){
+    promise.then( function(result) {
+        console.log(result)
+    }
+    )
+})
+
 
 
 
