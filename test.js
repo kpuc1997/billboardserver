@@ -1,88 +1,35 @@
-// ***************** Problem Statement ******************
-// This function is supposed to format and return data from an api call.
-// The api call uses a callback to handle the data and I can't get the 
-// callback function to append data to a list in the parent function 
-// properly. I think it has to do with asychronous callback timing but
-// I can't seem to fix it. I've tried using promises and async/await but 
-// I still can't get it. 
-// ******************************************************
+const fs = require('fs');
 
+var content = fs.readFileSync('chartData.json', 'utf8');
+var jsonData = JSON.parse(content);
 
-// Using billboard api to get billboard data. 
-// Exhists as an npm package 'billboard-top-100'
-var getChart = require("billboard-top-100").getChart;
+var test = {"rank":1,"title":"Death Race For Love","artist":"Juice WRLD"}
 
-// This function is a non-issue. This function is a dependecy of the below function.
-var getDates = function(startDate, endDate) {
-    var dates = [],
-        currentDate = startDate,
-        addDays = function(days) {
-          var date = new Date(this.valueOf());
-          date.setDate(date.getDate() + days);
-          return date;
-        };
-    while (currentDate <= endDate) {
-      dates.push(currentDate);
-      currentDate = addDays.call(currentDate, 1);
+function isEqualObject(obj1, obj2) {
+    // Compares my objects
+    if(obj1.rank == obj2.rank) {
+        if(obj1.title == obj2.title) {
+            if(obj1.artist == obj2.artist) {
+                return true
+            }
+        }
     }
-    return dates;
-  };
-
-
-function getChartData(lastUpdate, today) {
-// Retrieves and formats chart data between two dates. Returns formated data.
-    // List of objects, each with rank, title, and artist
-
-    var data = []; // List where the data from the billboard api will be stored
-    // Gets a list of all days between two dates
-    var dates = getDates(lastUpdate, today); 
- 
-    // For each date, get chart data from the billboard api
-    dates.forEach(function(date) {
-
-            // billboard api call. Uses a callback to handle the data.
-            // 'billboard-200' is the chart to check
-            // date.toISOString()slice(0, 10) is the date to check the chart.
-            // the third argument is the callback function.
-            data.push(new Promise(function(resolve, reject) {
-                getChart('billboard-200', date.toISOString().slice(0, 10), function(err, chart) {
-                
-                var temp = [];
-                for(song of chart.songs) {
-                    temp.push(
-                        {   rank: song.rank, 
-                            title: song.title, 
-                            artist: song.artist}
-                        )
-                    };
-                resolve(temp);
-                });
-            }));            
-    }
-)
-    
-    //setTimeout(function() {console.log(data)}, 5000);
-    // Uncommenting the above line will log 'data' after 5 seconds. 
-    // After waiting 5 seconds, data contains all information necessary.
-    // Waiting 0 seconds returns an empty list.
-    // In both cases the main function will return an empty list.
-    return data
-
+    return false
 }
 
-// Main goal is to get the above function to return a list of objects with 
-// data from the billboard api. The following line tests this by attempting
-// to get data from only one week and log it to console. 
-// At present it will only log an empty list.
 
-getChartData(new Date('2019-03-01'), new Date('2019-03-01')).forEach(function(promise){
-    promise.then( function(result) {
-        console.log(result)
+function isIn(obj1, somearray) {
+    // Determines if object 1 is in array of objects.
+    
+    for(item of somearray) {
+        if(isEqualObject(obj1, item)) {
+            return true
+        }
     }
-    )
-})
 
+    return false
+}
 
-
+console.log(isIn(test, jsonData))
 
 

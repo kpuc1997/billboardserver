@@ -21,8 +21,30 @@ function getLastUpdate() {
     return lastUpdate
 }
 
+function isEqualObject(obj1, obj2) {
+    // Compares my objects
+    if(obj1.rank == obj2.rank) {
+        if(obj1.title == obj2.title) {
+            if(obj1.artist == obj2.artist) {
+                return true
+            }
+        }
+    }
+    return false
+}
 
-checkUpdate(getLastUpdate())
+
+function isIn(obj1, somearray) {
+    // Determines if object 1 is in array of objects.
+    
+    for(item of somearray) {
+        if(isEqualObject(obj1, item)) {
+            return true
+        }
+    }
+
+    return false
+}
 
 Date.prototype.addDays = function(days) {
     var date = new Date(this.valueOf());
@@ -30,26 +52,46 @@ Date.prototype.addDays = function(days) {
     return date;
 }
 
-var getDates = function(startDate, endDate) {
-    var dates = [],
-        currentDate = startDate,
-        addDays = function(days) {
-          var date = new Date(this.valueOf());
-          date.setDate(date.getDate() + days);
-          return date;
-        };
-    while (currentDate <= endDate) {
-      dates.push(currentDate);
-      currentDate = addDays.call(currentDate, 7);
+// var getDates = function(startDate, endDate) {
+//     var dates = [];
+//     var currentDate = startDate;
+//     function addDays(days, date) {
+//         return date.setDate(date.getDate() + days)
+//     };
+    
+//     // addDays = function(days) {
+//     //       var date = new Date(this.valueOf());
+//     //       date.setDate(date.getDate() + days);
+//     //       return date;
+//     //     };
+
+//     while (currentDate <= endDate) {
+//       dates.push(currentDate);
+//       currentDate = addDays(currentDate, 7);
+//     }
+//     dates.push(new Date())
+//     return dates;
+//   };
+
+function getDates(startDate, stopDate) {
+    if(typeof startDate === 'string') {
+        var currentDate = new Date(startDate)
     }
-    dates.push(new Date())
-    return dates;
-  };
+    else {
+        var currentDate = startDate;
+    };
+    var dateArray = new Array();
+    while (currentDate.getTime() <= stopDate.getTime()) {
+        dateArray.push(currentDate);
+        currentDate = currentDate.addDays(7);
+    }
+    dateArray.push(new Date())
+    return dateArray;
+}
+
 
 function checkUpdate(inputString) {
-    // Check whether or not the chart data needs to be updated. Returns true if 
-    // it does not need to be update. Returns true if the data needs to be
-    // updated.
+    // Check whether or not the chart data needs to be updated and updates it.
 
     Date.prototype.addDays = function(days) {
         var date = new Date(this.valueOf());
@@ -59,14 +101,17 @@ function checkUpdate(inputString) {
 
     today = new Date()
     lastUpdate = new Date(inputString)
-    lastUpdate = lastUpdate.addDays(7)
+    dateUpdate = lastUpdate.addDays(7)
  
-    if(today.getTime() > lastUpdate.getTime()) {
+    if(today.getTime() > dateUpdate.getTime()) {
         return true
     }
     else {
+        console.log('No update necessary')
         return false
     }
+
+
 }
 
 function getChartData(lastUpdate) {
@@ -75,6 +120,7 @@ function getChartData(lastUpdate) {
         var today = new Date()
         var data = []; // List where the data from the billboard api will be stored
         // Gets a list of all days between two dates
+
         var dates = getDates(lastUpdate, today); 
      
         // For each date, get chart data from the billboard api
@@ -115,16 +161,6 @@ function getChartData(lastUpdate) {
         return data
     }
 
-
-    // getChartData(new Date('2019-02-21'), new Date('2019-03-19')).forEach(function(promise){
-    //     promise.then( function(result) {
-    //         console.log(result[0])
-    //     }
-    //     )
-    // })
-
-
-storeChartData(new Date('2019-03-19'))
 
 var arrayUnique = function (arr) {
 	return arr.filter(function(item, index){
@@ -178,7 +214,7 @@ function storeChartData(lastUpdate) {
                                     return
                                 }
                                 else {
-                                    jsonData[jsonData.indexOf(chartEntry)] = song
+                                    placeholder.push(song)
                                 }
                             }
                             else {
@@ -204,44 +240,58 @@ function storeChartData(lastUpdate) {
         
     })
 
-  
 
 
-    toAppend.forEach(function(promise) {
+    Promise.all(toAppend).then(function(result) {
 
-        promise.then( function(result) {
+        result.forEach(function(songs) {                
 
-            content = fs.readFileSync('chartData.json', 'utf8')
-            backData = JSON.parse(content)
+            songs.forEach(function(song) {
+                
+                if(!isIn(song, jsonData)) {
+                    console.log('')
+                    console.log('Song retrieved')
+                    console.log(song)
+                    console.log('')
+                    jsonData.push(song)
 
-            result.forEach(function(song) {
+                }
+                else {
+                    console.log('')
+                    console.log('rejecting song')
+                    console.log('')
+                }
 
+            });
 
-                if(backData.includes(song)) {
-                    console.log('returning')
-                    return
-
-                };
-
-                if(!backData.includes(song)) {
-                    console.log('pushing')
-                    backData.push(song)
-                    
-                };
-
-            })
-            
-
-            var toWrite = JSON.stringify(backData)
-            fs.writeFileSync('chartData.json', toWrite)
+            toWrite = JSON.stringify(jsonData);
+            fs.writeFileSync('chartData.json', toWrite);
 
         })
     })
-
-
-
-
 }
+
+
+function checkChart(artist) {
+    // returns true if artist has charted
+    content = fs.readFileSync('chartData.json', 'utf8')
+    jsonData = JSON.parse(content)
+
+    for(item of jsonData) {
+        if(item.artist.replace(/ /g, '').toLowerCase() == artist.replace(/ /g, '').toLowerCase()){
+            return true
+        }
+    }
+    return false
+}
+
+function makeChecks() {
+    if(checkUpdate(getLastUpdate())) {
+        storeChartData(getLastUpdate())
+    }
+}
+
+makeChecks()
 
 app.get('/', (req, res) => res.sendFile('public/index.html', {root: __dirname }))
 
