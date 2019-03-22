@@ -3,10 +3,12 @@ const app = express();
 const port = 3000;
 const path = require('path');
 const router = express.Router();
-var fs = require('fs');
-var getChart = require("billboard-top-100").getChart;
+const fs = require('fs');
+const getChart = require("billboard-top-100").getChart;
+const performance = require('perf_hooks').performance;
 
-const endDate = '1962-01-01';
+
+const endDate = '1963-01-01';
 
 function getLastUpdate() {
     try {
@@ -18,7 +20,7 @@ function getLastUpdate() {
         // ADD HERE. Write in code that creates the lastUpdate.txt file with '1961-01-01'
         // written in.
     }
-    return lastUpdate
+    return  new Date(lastUpdate)
 }
 
 function isEqualObject(obj1, obj2) {
@@ -52,47 +54,28 @@ Date.prototype.addDays = function(days) {
     return date;
 }
 
-// var getDates = function(startDate, endDate) {
-//     var dates = [];
-//     var currentDate = startDate;
-//     function addDays(days, date) {
-//         return date.setDate(date.getDate() + days)
-//     };
-    
-//     // addDays = function(days) {
-//     //       var date = new Date(this.valueOf());
-//     //       date.setDate(date.getDate() + days);
-//     //       return date;
-//     //     };
-
-//     while (currentDate <= endDate) {
-//       dates.push(currentDate);
-//       currentDate = addDays(currentDate, 7);
-//     }
-//     dates.push(new Date())
-//     return dates;
-//   };
-
 function getDates(startDate, stopDate) {
-    if(typeof startDate === 'string') {
-        var currentDate = new Date(startDate)
+    if(typeof startDate === 'object' && typeof stopDate === 'object') {
+        var currentDate = startDate
+        var dateArray = new Array();
+        while (currentDate.getTime() <= stopDate.getTime()) {
+            dateArray.push(currentDate);
+            currentDate = currentDate.addDays(7);
+        }
+        dateArray.push(new Date())
+        return dateArray;
     }
     else {
-        var currentDate = startDate;
+        console.error('input parameters must be Date objects!');
     };
-    var dateArray = new Array();
-    while (currentDate.getTime() <= stopDate.getTime()) {
-        dateArray.push(currentDate);
-        currentDate = currentDate.addDays(7);
-    }
-    dateArray.push(new Date())
-    return dateArray;
 }
 
 
-function checkUpdate(inputString) {
+function checkUpdate(inputDate) {
     // Check whether or not the chart data needs to be updated and updates it.
-
+    if(typeof inputDate != 'object') {
+        console.error('checkUpdate() input must be Date object!')
+    }
     Date.prototype.addDays = function(days) {
         var date = new Date(this.valueOf());
         date.setDate(date.getDate() + days);
@@ -100,7 +83,7 @@ function checkUpdate(inputString) {
     }
 
     today = new Date()
-    lastUpdate = new Date(inputString)
+    lastUpdate = inputDate
     dateUpdate = lastUpdate.addDays(7)
  
     if(today.getTime() > dateUpdate.getTime()) {
@@ -110,8 +93,6 @@ function checkUpdate(inputString) {
         console.log('No update necessary')
         return false
     }
-
-
 }
 
 function getChartData(lastUpdate) {
@@ -168,6 +149,13 @@ var arrayUnique = function (arr) {
 	});
 };
 
+Array.prototype.extend = function (other_array) {
+    // if(typeof other_array != 'array') {
+    //     console.error('FUCK, dont add a non-array to this array')
+    // }
+    other_array.forEach(function(v) {this.push(v)}, this);
+}
+
 function storeChartData(lastUpdate) {
     // For each week between lastUpdate and today:
     // Opens the data store file and reads the list of charted artists
@@ -188,89 +176,57 @@ function storeChartData(lastUpdate) {
     }
 
 
-    var toAppend = [];
+    Promise.all(getChartData(lastUpdate, new Date())).then(function(weeks) {
 
-    getChartData(lastUpdate, new Date()).forEach(function(promise){
-
-        chartPromise = new Promise(function(resolve, reject) {
-
-            promise.then( function(songs) {
-
-                placeholder = [];
-
-                songs.forEach(function(song) {
-
-                    if(jsonData.length === 0) {
-
-                        placeholder.push(song)
-
-                    }
-                    else {
-
-                        jsonData.forEach(function(chartEntry) {
-    
-                            if(chartEntry.artist === song.artist) {
-                                if(chartEntry.rank <= song.rank) {
-                                    return
-                                }
-                                else {
-                                    placeholder.push(song)
-                                }
-                            }
-                            else {
-                                placeholder.push(song)
-                            }
-    
-                        })
-
-                    }
-
-                    
-    
-                })
-                resolve(placeholder)
-
+        returnData = resultSorter(weeks)
+ 
+        jsonData.extend(returnData.filter(function(song) {
+            for(chart of jsonData) {
+                if(chart.artist == song.artist && song.rank >= chart.rank) {
+                    return false
+                }
+                if(chart.artist == song.artist && song.rank < chart.rank) {
+                    jsonData[jsonData.indexOf(chart)] = song
+                    return false
+                }
             }
-            )
+            return true
+        }))
 
+        toWrite = JSON.stringify(jsonData)
+        fs.writeFileSync('chartData.json', toWrite)
+        console.log('Charted artists done storing')
 
-        });
-
-        toAppend.push(chartPromise);
-        
     })
 
-
-
-    Promise.all(toAppend).then(function(result) {
-
-        result.forEach(function(songs) {                
-
-            songs.forEach(function(song) {
-                
-                if(!isIn(song, jsonData)) {
-                    console.log('')
-                    console.log('Song retrieved')
-                    console.log(song)
-                    console.log('')
-                    jsonData.push(song)
-
-                }
-                else {
-                    console.log('')
-                    console.log('rejecting song')
-                    console.log('')
-                }
-
-            });
-
-            toWrite = JSON.stringify(jsonData);
-            fs.writeFileSync('chartData.json', toWrite);
-
-        })
-    })
 }
 
+function resultSorter(weeks) {
+    // Returns array of chart data that has been filtered for duplicates 
+    // and ranking updates
+    array = new Array();
+    weeks.forEach(function(week) {
+        week.forEach(function(song) {
+            if(array.length == 0) {
+                array.push(song)
+                return
+            }
+            for(item of array) {
+                if(item.artist == song.artist && item.rank <= song.rank) {
+                    return
+                }
+                if(item.artist == song.artist && item.rank > song.rank) {
+                    array[array.indexOf(item)] = song
+                    return
+                }
+            }
+            array.push(song)
+        })
+    })
+
+    return array
+
+}
 
 function checkChart(artist) {
     // returns true if artist has charted
@@ -291,7 +247,8 @@ function makeChecks() {
     }
 }
 
-makeChecks()
+// makeChecks()
+storeChartData(getLastUpdate())
 
 app.get('/', (req, res) => res.sendFile('public/index.html', {root: __dirname }))
 
