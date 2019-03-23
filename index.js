@@ -288,7 +288,7 @@ app.get('/', (req, res) => res.sendFile('public/index.html', {root: __dirname })
 
 app.get('/chartArtist', (req, res) => res.send(fs.readFileSync('chartData.json', 'utf8')))
 
-app.use(express.static('public'))
+app.use(express.static(__dirname + '/public'))
 
 
 app.listen(port, () => console.log(`Example app listening on port ${port}!`))
