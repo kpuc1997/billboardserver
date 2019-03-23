@@ -24,6 +24,9 @@ for(var i = 0; i < jsonData.length; i = i +1) {
     for(chart of jsonData) {
         if(chart.artist == jsonData[i].artist) {
             counter = counter + 1
+            if(counter > 1) {
+                console.log(chart.artist)
+            }
         }
     }
     if(counter != 1) {
