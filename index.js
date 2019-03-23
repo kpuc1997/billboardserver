@@ -117,16 +117,16 @@ function checkUpdate(inputDate) {
 function getNewChartPromise(date) {
     return new Promise(function(resolve, reject) {
         getChart('billboard-200', date.toISOString().slice(0, 10), function(err, chart) {
-            try {
-            if(typeof chart == 'undefined') {
-                console.log('getChart returned undefined')
-                reject('Error')
+            // try {
+            // if(typeof chart == 'undefined') {
+            //     console.log('getChart returned undefined')
+            //     reject('Error')
 
-            }
-            if(err) {
-                console.log('getChart returned an error')
-                reject('Error')
-            }
+            // }
+            // if(err) {
+            //     console.log('getChart returned an error')
+            //     reject('Error')
+            // }
             var temp = [];
             for(song of chart.songs) {
 
@@ -148,11 +148,11 @@ function getNewChartPromise(date) {
                 
                 };
             resolve(temp);
-            }
-            catch(err) {
-                console.log('getChart error caught')
-                reject('Error')
-            }
+            // }
+            // catch(err) {
+            //     console.log('getChart error caught')
+            //     reject('Error')
+            // }
         });
     })
 }
@@ -224,7 +224,12 @@ async function storeChartData(lastUpdate) {
         console.log(dateArray.indexOf(dates).toString() + ' of ' + dateArray.length.toString())
         chartPromiseArray = getChartPromiseArray(dates)
     for(promise of chartPromiseArray) {
+        try {
         weekData = await promise
+        } catch(err) {
+            console.log(err)
+            continue
+        }
         weekData.forEach(function(song) {
             if(jsonData.length == 0) {
                 jsonData.push(song)
@@ -254,6 +259,9 @@ async function storeChartData(lastUpdate) {
 }
 
 function checkChart(artist) {
+    if(typeof artist != 'string'){
+        artist = artist.toString()
+    }
     // returns true if artist has charted
     content = fs.readFileSync('chartData.json', 'utf8')
     jsonData = JSON.parse(content)
@@ -272,12 +280,13 @@ function makeChecks() {
     }
 }
 
-// makeChecks()
-storeChartData(getLastUpdate())
+makeChecks()
+
+console.log(checkChart('2 chainz'))
 
 app.get('/', (req, res) => res.sendFile('public/index.html', {root: __dirname }))
 
-
+app.get('/chartArtist', (req, res) => res.send(fs.readFileSync('chartData.json', 'utf8')))
 
 app.use(express.static('public'))
 
