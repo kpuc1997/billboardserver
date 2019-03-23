@@ -197,7 +197,7 @@ function getDateArray(lastUpdate, n) {
 async function storeChartData(lastUpdate) {
 
     // Weeks to get data from
-    dateArray = getDateArray(lastUpdate, 230)
+    dateArray = getDateArray(lastUpdate, 100)
 
     // Current known chart data
     var t0 = performance.now();
