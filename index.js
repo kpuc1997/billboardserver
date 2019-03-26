@@ -1,6 +1,6 @@
 const express = require('express');
 const app = express();
-const port = 8333;
+const port = 80;
 const path = require('path');
 const router = express.Router();
 const fs = require('fs');
@@ -252,6 +252,7 @@ async function storeChartData(lastUpdate) {
     toWrite = JSON.stringify(jsonData);
     fs.writeFileSync('chartData.json', toWrite);
     t1 = performance.now()
+    fs.writeFileSync('lastUpdate.txt', (new Date()).toISOString().slice(0, 10))
     console.log('Done storing chart data')
     console.log(((t1-t0) / 1000).toString() + ' seconds')    
 
@@ -281,8 +282,6 @@ function makeChecks() {
 }
 
 makeChecks()
-
-console.log(checkChart('2 chainz'))
 
 app.get('/', (req, res) => res.sendFile('public/index.html', {root: __dirname }))
 

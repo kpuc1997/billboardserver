@@ -2,7 +2,7 @@ console.log('testestest')
 
 var data 
 var request = new XMLHttpRequest();
-request.open('GET', 'http://chart.kyleclapper.com:8333/chartArtist', false)
+request.open('GET', 'http://chart.kyleclapper.com/chartArtist', false)
 request.onload = function() {
   var content = Object.values(JSON.parse(this.response))
   data = content
@@ -52,11 +52,10 @@ class LikeButton extends React.Component {
     }
     return (
       <div>
-        <form onSubmit={this.handleSubmit}>
+        <form >
         <label>
           <input type="text" value={this.state.value} onChange={this.handleChange} />
         </label>
-        <input type="submit" value="Submit" />
         <br />
         {returnString}
       </form>
