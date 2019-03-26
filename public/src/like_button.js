@@ -1,5 +1,3 @@
-console.log('testestest')
-
 var data 
 var request = new XMLHttpRequest();
 request.open('GET', 'http://chart.kyleclapper.com/chartArtist', false)
@@ -14,12 +12,25 @@ function checkChart(artist) {
       artist = artist.toString()
   }
 
+  var exactList= [];
+  var partList= [];
+  if(artist.replace(/ /g, '') == ''){
+    return [exactList, partList]
+  }
+
   for(item of data) {
       if(item.artist.replace(/ /g, '').toLowerCase() == artist.replace(/ /g, '').toLowerCase()){
-          return true
+          exactList.push(item)
+      }
+      if(item.artist.replace(/ /g, '').toLowerCase().includes(artist.replace(/ /g, '').toLowerCase())) {
+        partList.push(item)
+      }
+      if((exactList.length + partList.length) == 25) {
+        return [exactList, partList]
       }
   }
-  return false
+  
+  return [exactList, partList]
 }
 
 class LikeButton extends React.Component {
@@ -27,13 +38,19 @@ class LikeButton extends React.Component {
     super(props);
     this.state = {  charted: false,
                     test: 'string',
+                    eList: [],
+                    pList: [],
                     };
     this.handleChange = this.handleChange.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
   }
 
   handleChange = (event) => {
-    this.setState({charted: checkChart(event.target.value)});
+    var list = checkChart(event.target.value);
+    var exactList = list[0];
+    var partList = list[1];
+    this.setState({eList: exactList});
+    this.setState({pList: partList});
 
   }
 
@@ -44,12 +61,13 @@ class LikeButton extends React.Component {
 
   render() {
     var returnString = '';
-    if(this.state.charted) {
-      returnString = 'This band HAS CHARTED. You CANNOT play them.'
-    }
-    if(!this.state.charted) {
-      returnString = 'This band has not charted. You can play them.'
-    }
+    var listexact = this.state.eList.map(function(chart) {
+      return <li key={chart.artist}>{chart.artist}  &emsp;   <i>{chart.title}</i>   &emsp;  Rank: {chart.rank}</li>
+    })
+    var listpartial = this.state.pList.map(function(chart) {
+      return <li key={chart.artist}>{chart.artist}  &emsp;   <i>{chart.title}</i>  &emsp;   Rank: {chart.rank}</li>
+    })
+
     return (
       <div>
         <form >
@@ -57,7 +75,9 @@ class LikeButton extends React.Component {
           <input type="text" value={this.state.value} onChange={this.handleChange} />
         </label>
         <br />
-        {returnString}
+        <ul>{listexact}</ul> 
+        <br />
+        <ul>{listpartial}</ul>
       </form>
       </div>
     );

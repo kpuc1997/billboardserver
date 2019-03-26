@@ -6,8 +6,6 @@ function _possibleConstructorReturn(self, call) { if (!self) { throw new Referen
 
 function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
-console.log('testestest');
-
 var data;
 var request = new XMLHttpRequest();
 request.open('GET', 'http://chart.kyleclapper.com/chartArtist', false);
@@ -22,6 +20,12 @@ function checkChart(artist) {
     artist = artist.toString();
   }
 
+  var exactList = [];
+  var partList = [];
+  if (artist.replace(/ /g, '') == '') {
+    return [exactList, partList];
+  }
+
   var _iteratorNormalCompletion = true;
   var _didIteratorError = false;
   var _iteratorError = undefined;
@@ -31,7 +35,13 @@ function checkChart(artist) {
       item = _step.value;
 
       if (item.artist.replace(/ /g, '').toLowerCase() == artist.replace(/ /g, '').toLowerCase()) {
-        return true;
+        exactList.push(item);
+      }
+      if (item.artist.replace(/ /g, '').toLowerCase().includes(artist.replace(/ /g, '').toLowerCase())) {
+        partList.push(item);
+      }
+      if (exactList.length + partList.length == 25) {
+        return [exactList, partList];
       }
     }
   } catch (err) {
@@ -49,7 +59,7 @@ function checkChart(artist) {
     }
   }
 
-  return false;
+  return [exactList, partList];
 }
 
 var LikeButton = function (_React$Component) {
@@ -61,11 +71,17 @@ var LikeButton = function (_React$Component) {
     var _this = _possibleConstructorReturn(this, (LikeButton.__proto__ || Object.getPrototypeOf(LikeButton)).call(this, props));
 
     _this.handleChange = function (event) {
-      _this.setState({ charted: checkChart(event.target.value) });
+      var list = checkChart(event.target.value);
+      var exactList = list[0];
+      var partList = list[1];
+      _this.setState({ eList: exactList });
+      _this.setState({ pList: partList });
     };
 
     _this.state = { charted: false,
-      test: 'string'
+      test: 'string',
+      eList: [],
+      pList: []
     };
     _this.handleChange = _this.handleChange.bind(_this);
     _this.handleSubmit = _this.handleSubmit.bind(_this);
@@ -82,12 +98,37 @@ var LikeButton = function (_React$Component) {
     key: 'render',
     value: function render() {
       var returnString = '';
-      if (this.state.charted) {
-        returnString = 'This band HAS CHARTED. You CANNOT play them.';
-      }
-      if (!this.state.charted) {
-        returnString = 'This band has not charted. You can play them.';
-      }
+      var listexact = this.state.eList.map(function (chart) {
+        return React.createElement(
+          'li',
+          { key: chart.artist },
+          chart.artist,
+          '  \u2003   ',
+          React.createElement(
+            'i',
+            null,
+            chart.title
+          ),
+          '   \u2003  Rank: ',
+          chart.rank
+        );
+      });
+      var listpartial = this.state.pList.map(function (chart) {
+        return React.createElement(
+          'li',
+          { key: chart.artist },
+          chart.artist,
+          '  \u2003   ',
+          React.createElement(
+            'i',
+            null,
+            chart.title
+          ),
+          '  \u2003   Rank: ',
+          chart.rank
+        );
+      });
+
       return React.createElement(
         'div',
         null,
@@ -100,7 +141,17 @@ var LikeButton = function (_React$Component) {
             React.createElement('input', { type: 'text', value: this.state.value, onChange: this.handleChange })
           ),
           React.createElement('br', null),
-          returnString
+          React.createElement(
+            'ul',
+            null,
+            listexact
+          ),
+          React.createElement('br', null),
+          React.createElement(
+            'ul',
+            null,
+            listpartial
+          )
         )
       );
     }
