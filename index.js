@@ -6,7 +6,7 @@ const router = express.Router();
 const fs = require('fs');
 const getChart = require("billboard-top-100").getChart;
 const { performance } = require('perf_hooks');
-
+const cron = require('node-cron')
 const endDate = '1963-01-01';
 
 
@@ -279,9 +279,10 @@ function makeChecks() {
     if(checkUpdate(getLastUpdate())) {
         storeChartData(getLastUpdate())
     }
+    console.log('Checked')
 }
 
-makeChecks()
+cron.schedule('0 0 * * 1', makeChecks)
 
 app.get('/', (req, res) => res.sendFile('public/index.html', {root: __dirname }))
 
