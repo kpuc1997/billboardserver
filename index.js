@@ -279,7 +279,6 @@ function makeChecks() {
     if(checkUpdate(getLastUpdate())) {
         storeChartData(getLastUpdate())
     }
-    console.log('Checked')
 }
 
 cron.schedule('0 0 * * 1', makeChecks)
