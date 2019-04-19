@@ -1,6 +1,6 @@
 const express = require('express');
 const app = express();
-const port = 80;
+const port = 8000;
 const path = require('path');
 const router = express.Router();
 const fs = require('fs');
@@ -8,7 +8,8 @@ const getChart = require("billboard-top-100").getChart;
 const { performance } = require('perf_hooks');
 const cron = require('node-cron')
 const endDate = '1963-01-01';
-
+const spawn = require('child_process').spawn;
+const script = './pomsearchtool.py';
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -259,6 +260,20 @@ async function storeChartData(lastUpdate) {
 
 }
 
+function pomPromise(childProcess) {
+    return new Promise(function(resolve, reject) {
+        childProcess.stdout.on('data', (data) => {
+            resolve(data.toString('utf8'))
+        })
+    })
+}
+
+async function getPOMData(song, artist) {
+    const pomScript = spawn('python3', [script, song, artist]);
+    let data = await pomPromise(pomScript);
+    return data
+}
+
 function checkChart(artist) {
     if(typeof artist != 'string'){
         artist = artist.toString()
@@ -281,11 +296,21 @@ function makeChecks() {
     }
 }
 
+
 cron.schedule('0 0 * * 1', makeChecks)
 
 app.get('/', (req, res) => res.sendFile('public/index.html', {root: __dirname }))
 
 app.get('/chartArtist', (req, res) => res.send(fs.readFileSync('chartData.json', 'utf8')))
+
+app.get('/pomsearch', async function(req, res) {
+    pomdata = await getPOMData(req.query.song, req.query.artist)
+    console.log(req.query.song)
+    console.log(req.query.artist)
+    console.log(pomdata)
+    res.send(pomdata)
+
+})
 
 app.use(express.static(__dirname + '/public'))
 
